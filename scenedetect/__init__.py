@@ -38,7 +38,7 @@ from scenedetect.video_splitter import split_video_ffmpeg, split_video_mkvmerge
 from scenedetect.scene_detector import SceneDetector
 from scenedetect.detectors import ContentDetector, AdaptiveDetector, ThresholdDetector, HistogramDetector, HashDetector
 from scenedetect.backends import (AVAILABLE_BACKENDS, VideoStreamCv2, VideoStreamAv,
-                                  VideoStreamMoviePy, VideoCaptureAdapter)
+                                  VideoStreamMoviePy, VideoCaptureAdapter, FrameArrayCaptureAdapter)
 from scenedetect.stats_manager import StatsManager, StatsFileCorrupt
 from scenedetect.scene_manager import SceneManager, save_images
 

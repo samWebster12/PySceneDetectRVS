@@ -125,7 +125,7 @@ def test_api_device_callback(test_video_file: str):
     wrapping it with a `VideoCaptureAdapter.`"""
     import cv2
     import numpy
-    from scenedetect import SceneManager, ContentDetector, VideoCaptureAdapter
+    from scenedetect import SceneManager, ContentDetector, VideoCaptureAdapter, FrameArrayCaptureAdapter
 
     # Callback to invoke on the first frame of every new scene detection.
     def on_new_scene(frame_img: numpy.ndarray, frame_num: int):

@@ -20,7 +20,7 @@ which do not support seeking.
 
 from logging import getLogger
 import math
-from typing import AnyStr, Tuple, Union, Optional
+from typing import AnyStr, Tuple, Union, Optional, List
 import os.path
 
 import cv2
@@ -540,3 +540,96 @@ class VideoCaptureAdapter(VideoStream):
             _, frame = self._cap.retrieve()
             return frame
         return True
+
+class FrameArrayCaptureAdapter(VideoStream):
+    """Adapter for an array of OpenCV frames, simulating a VideoCapture object."""
+
+    BACKEND_NAME = 'frame_array'
+
+    def __init__(
+        self,
+        frames: List[np.ndarray],
+        framerate: float = 30.0,
+    ):
+        """Initialize the adapter from an array of frames."""
+        super().__init__()
+        
+        if not isinstance(frames, list) or not all(isinstance(f, np.ndarray) for f in frames):
+            raise ValueError('Frames must be a list of numpy ndarrays.')
+        if framerate <= 0:
+            raise ValueError('Framerate must be greater than 0.')
+
+        self._frames = frames
+        self._frame_rate = framerate
+        self._num_frames = len(frames)
+        self._current_frame = 0
+        self._base_timecode = FrameTimecode(0, self._frame_rate)
+
+    @property
+    def frame_rate(self) -> float:
+        return self._frame_rate
+
+    @property
+    def frame_size(self) -> Tuple[int, int]:
+        if self._num_frames > 0:
+            return self._frames[0].shape[1], self._frames[0].shape[0]
+        return (0, 0)
+
+    @property
+    def duration(self) -> FrameTimecode:
+        return FrameTimecode(self._num_frames, self._frame_rate)
+
+    @property
+    def position(self) -> FrameTimecode:
+        return FrameTimecode(self._current_frame, self._frame_rate)
+
+    @property
+    def position_ms(self) -> float:
+        return self._current_frame * 1000 / self._frame_rate
+
+    @property
+    def frame_number(self) -> int:
+        return self._current_frame
+
+    @property
+    def aspect_ratio(self) -> float:
+        return 1.0  # Assuming square pixels, modify if needed
+
+    @property
+    def name(self) -> str:
+        return "FrameArrayCapture"
+
+    @property
+    def path(self) -> str:
+        return f"InMemoryFrames({self._num_frames})"
+
+    @property
+    def is_seekable(self) -> bool:
+        return True
+
+    @property
+    def base_timecode(self) -> FrameTimecode:
+        return self._base_timecode
+
+    def seek(self, target: Union[FrameTimecode, float, int]):
+        if isinstance(target, FrameTimecode):
+            frame_number = target.get_frames()
+        elif isinstance(target, float):
+            frame_number = int(target * self._frame_rate)
+        else:
+            frame_number = int(target)
+
+        if frame_number < 0 or frame_number >= self._num_frames:
+            raise ValueError('Frame number out of range.')
+        self._current_frame = frame_number
+
+    def read(self, decode: bool = True, advance: bool = True) -> Union[np.ndarray, bool]:
+        if self._current_frame >= self._num_frames:
+            return False
+        frame = self._frames[self._current_frame]
+        if advance:
+            self._current_frame += 1
+        return frame if decode else True
+
+    def reset(self):
+        self._current_frame = 0
